@@ -1,0 +1,7 @@
+---
+
+rules:
+  line-length: disable
+
+ignore: |
+  .venv
