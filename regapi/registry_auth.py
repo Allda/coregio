@@ -1,14 +1,13 @@
 """Registry authentication module."""
 
-import re
 import os
+import re
+from urllib.parse import urlparse
 
 import requests
 from requests.auth import AuthBase
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import parse_dict_header
-from six.moves.urllib.parse import urlparse
-
 
 # This module comes from atomic-reactor
 # https://github.com/containerbuildsystem/atomic-reactor/blob/1.6.41/atomic_reactor/auth.py
