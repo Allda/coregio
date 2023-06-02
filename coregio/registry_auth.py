@@ -1,6 +1,5 @@
 """Registry authentication module."""
 
-import os
 import re
 from urllib.parse import urlparse
 
@@ -13,7 +12,7 @@ from requests.utils import parse_dict_header
 # https://github.com/containerbuildsystem/atomic-reactor/blob/1.6.41/atomic_reactor/auth.py
 
 
-class HTTPBearerAuth(AuthBase):  # pragma: no cover
+class HTTPBearerAuth(AuthBase):
     """
     Performs Bearer authentication for the given Request object.
 
@@ -57,7 +56,7 @@ class HTTPBearerAuth(AuthBase):  # pragma: no cover
             self._set_header(response, repo)
             return response
 
-        def handle_401_with_repo(resp, **kwargs):
+        def handle_401_with_repo(resp, **kwargs):  # pragma: no cover
             return self.handle_401(resp, repo, **kwargs)
 
         response.register_hook("response", handle_401_with_repo)
@@ -106,11 +105,12 @@ class HTTPBearerAuth(AuthBase):  # pragma: no cover
         if self.auth_b64:
             realm_auth = HTTPBasicAuthWithB64(self.auth_b64)
 
-        registry_proxy = os.environ.get("EXTERNAL_REGISTRY_PROXY")
-        if registry_proxy:
-            proxies = {"https": registry_proxy}
-        else:
-            proxies = None
+        # registry_proxy = os.environ.get("EXTERNAL_REGISTRY_PROXY")
+        # if registry_proxy:
+        #     proxies = {"https": registry_proxy}
+        # else:
+        #     proxies = None
+        proxies = None
         realm_response = requests.get(
             realm,
             params=bearer_info,

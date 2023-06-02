@@ -2,33 +2,23 @@
 name: Release
 
 on:  # yamllint disable-line rule:truthy
-  workflow_run:
-    workflows:
-      - validation
-    branches:
-      - library
-    types:
-      - completed
-  workflow_dispatch:
-
+  push:
+    tags:
+      - '*'
 jobs:
-  release:
-    name: Github release
+  pypi-publish:
+    name: Upload release to PyPI
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/coregio
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v3
-
-      - name: Bump version and push tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+      - name: Build a package
+        run: |
+            pip install pdm
+            pdm build
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
