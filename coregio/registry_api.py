@@ -7,8 +7,8 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
-from regapi import utils
-from regapi.registry_auth import HTTPBearerAuth, HTTPBasicAuthWithB64
+from coregio import utils
+from coregio.registry_auth import HTTPBearerAuth, HTTPBasicAuthWithB64
 
 LOGGER = logging.getLogger(__name__)
 

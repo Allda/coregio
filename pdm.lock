@@ -410,7 +410,7 @@ dependencies = [
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:846aa034c0f9f8b8bed12b8f7ef77c26c8bb25279fe8d3caee96d615fb807688"
+content_hash = "sha256:d402f418d85ffa7f4a9e5b882ee64d597e09ad2a45b35e4714b89b0ffc9564f2"
 
 [metadata.files]
 "astroid 2.15.5" = [

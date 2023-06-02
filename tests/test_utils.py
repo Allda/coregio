@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from regapi import utils
+from coregio import utils
 
 
 @pytest.mark.parametrize("status_code", [200, 400, 500])
