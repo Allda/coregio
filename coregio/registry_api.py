@@ -281,100 +281,69 @@ class ContainerRegistry:
 
         return data[:limit] if limit else data
 
+    def get_manifest(
+        self,
+        repository: str,
+        reference: str,
+        manifest_types: Any = None,
+        is_headers: bool = False,
+    ) -> Any:
+        """
+        Get manifest in a repository by a reference (manifest digest or tag).
 
-def get_manifest(  # pylint: disable=too-many-arguments
-    registry: str,
-    docker_cfg: Optional[str],
-    repository: str,
-    reference: str,
-    manifest_types: Any = None,
-    is_headers: bool = False,
-) -> Any:
-    """
-    Get manifest in a repository by a reference (manifest digest or tag).
+        Args:
+            repository (str): Repository name
+            reference (str): Manifest digest or tag
+            manifest_types (Optional, List[str]): What type of manifest
+                to get, i.e. index, manifest, ...
+            is_headers (bool): Indicates if headers need to be returned or response data
 
-    Args:
-        registry (str): registry to query from
-        docker_cfg (Optional, str): DockerConfigJson to authenticate to the registry
-            with, if none, then request will be made anonymously
-        repository (str): Repository
-        reference (str): Manifest digest or tag
-        manifest_types (Optional, List[str]): What type of manifest
-            to get, i.e. index, manifest, ...
-        is_headers (bool): Indicates if headers need to be returned or response data
+        Returns:
+            dict: Manifest in the given repository or headers of the response
+                (depends on value of is_headers parameter)
+        """
+        if not manifest_types:
+            manifest_types = ["docker_manifest_v2", "oci_manifest"]
 
-    Returns:
-        dict: Manifest in the given repository or headers of the response
-              (depends on value of is_headers parameter)
-    """
-    if not manifest_types:
-        manifest_types = ["docker_manifest_v2", "oci_manifest"]
+        accept_header = ", ".join([ACCEPT_HEADERS[type] for type in manifest_types])
+        headers = {"Accept": accept_header}
+        uri = f"v2/{repository}/manifests/{reference}"
+        rsp = self.get_request(uri, headers=headers)
+        if is_headers:
+            return rsp.headers
+        return rsp.json()
 
-    accept_header = ", ".join([ACCEPT_HEADERS[type] for type in manifest_types])
-    registry_api = ContainerRegistry(registry, docker_cfg)
-    headers = {"Accept": accept_header}
-    uri = f"v2/{repository}/manifests/{reference}"
-    rsp = registry_api.get_request(uri, headers=headers)
-    if is_headers:
-        return rsp.headers
-    return rsp.json()
+    def get_manifest_headers(self, repository: str, reference: str) -> Any:
+        """
+        Get manifest headers in a repository by a reference (manifest digest or tag).
 
+        Args:
+            repository (str): Repository name
+            reference (str): Manifest digest or tag
+            manifest_types (Optional, List[str]): What type of manifest
+                to get, i.e. index, manifest, ...
 
-def get_manifest_headers(
-    container_registry: ContainerRegistry,
-    repository: str,
-    reference: str,
-    manifest_types: Any = None,
-) -> Any:
-    """
-    Get manifest headers in a repository by a reference (manifest digest or tag).
+        Returns:
+            dict: Headers of the response
+        """
+        return self.get_manifest(repository, reference, is_headers=True)
 
-    Args:
-        container_registry (ContainerRegistry): registry to query from
-        repository (str): Repository
-        reference (str): Manifest digest or tag
-        manifest_types (Optional, List[str]): What type of manifest
-            to get, i.e. index, manifest, ...
+    def get_tags(self, repository: str, page_size: int = 100, limit: int = 2000) -> Any:
+        """
+        Get all tags in a repository.
 
-    Returns:
-        dict: Headers of the response
-    """
-    if not manifest_types:
-        manifest_types = ["docker_manifest_v2", "oci_manifest"]
-
-    accept_header = ", ".join([ACCEPT_HEADERS[type] for type in manifest_types])
-    headers = {"Accept": accept_header}
-    uri = f"v2/{repository}/manifests/{reference}"
-    rsp = container_registry.get_request(uri, headers=headers)
-
-    return rsp.headers
+        Args:
+            repository (str): Repository name
+            page_size (int, optional): The number of tags per page; defaults to 100
+            limit (int, optional): Maximum total number of tags
+                to be retrieved; defaults to 2000
 
 
-def get_tags(
-    registry: str,
-    docker_cfg: Optional[str],
-    repository: str,
-    page_size: int = 100,
-    limit: int = 2000,
-) -> Any:
-    """
-    Get all tags in a repository.
+        Returns:
+            list: Tags in the repository
 
-    Args:
-        registry (str): registry to query from
-        docker_cfg (str): DockerConfigJson to authenticate to the registry with
-        repository (str): Repository
-        page_size (int, optional): The number of tags per page; defaults to 100
-        limit (int, optional): Maximum total number of tags
-            to be retrieved; defaults to 2000
-
-
-    Returns:
-        list: Tags in the repository
-
-    """
-    registry_api = ContainerRegistry(registry, docker_cfg)
-    uri = f"v2/{repository}/tags/list"
-    return registry_api.get_paginated_response(
-        uri, list_name="tags", page_size=page_size, limit=limit
-    )
+        """
+        uri = f"v2/{repository}/tags/list"
+        return self.get_paginated_response(
+            uri, list_name="tags", page_size=page_size, limit=limit
+        )

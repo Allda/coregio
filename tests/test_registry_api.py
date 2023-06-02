@@ -4,12 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from coregio.registry_api import (
-    ContainerRegistry,
-    get_manifest,
-    get_manifest_headers,
-    get_tags,
-)
+from coregio.registry_api import ContainerRegistry
 
 
 @pytest.mark.parametrize(
@@ -166,7 +161,8 @@ def test_get_manifest(
     get.json.return_value = {"foo": "bar"}
     mock_get.return_value = get
     mock_handle.return_value = None
-    result = get_manifest("registry", "docker_cfg", "repo", "ref")
+    registry = ContainerRegistry("registry", "docker_cfg")
+    result = registry.get_manifest("repo", "ref")
 
     assert result == {"foo": "bar"}
     mock_get.assert_called_once_with(
@@ -181,7 +177,7 @@ def test_get_manifest(
     response.status_code = 200
     response.headers = {"Docker-Content-Digest": "demo_manifest_1"}  # type: ignore
     mock_get.return_value = response
-    result = get_manifest("registry", "docker_cfg", "repo", "ref", is_headers=True)
+    result = registry.get_manifest("repo", "ref", is_headers=True)
     assert result == {"Docker-Content-Digest": "demo_manifest_1"}
 
     mock_get.assert_called_once_with(
@@ -195,7 +191,7 @@ def test_get_manifest(
     mock_resp.status_code = 400
     mock_get.side_effect = requests.HTTPError(response=mock_resp)
     with pytest.raises(requests.HTTPError):
-        get_manifest("registry", "docker_cfg", "repo", "ref")
+        registry.get_manifest("repo", "ref")
 
 
 @patch("coregio.utils.handle_response")
@@ -209,7 +205,7 @@ def test_get_manifest_headers(
     mock_get.return_value = get
     mock_handle.return_value = None
     registry_api = ContainerRegistry(url="registry")
-    result = get_manifest_headers(registry_api, "repo", "ref")
+    result = registry_api.get_manifest_headers("repo", "ref")
 
     assert result == {"foo": "bar"}
     mock_get.assert_called_once_with(
@@ -224,7 +220,7 @@ def test_get_manifest_headers(
     response.status_code = 200
     response.headers = {"Docker-Content-Digest": "demo_manifest_1"}  # type: ignore
     mock_get.return_value = response
-    result = get_manifest_headers(registry_api, "repo", "ref")
+    result = registry_api.get_manifest_headers("repo", "ref")
     assert result == {"Docker-Content-Digest": "demo_manifest_1"}
 
     mock_get.assert_called_once_with(
@@ -238,13 +234,15 @@ def test_get_manifest_headers(
     mock_resp.status_code = 400
     mock_get.side_effect = requests.HTTPError(response=mock_resp)
     with pytest.raises(requests.HTTPError):
-        get_manifest_headers(registry_api, "repo", "ref")
+        registry_api.get_manifest_headers("repo", "ref")
 
 
 @patch("coregio.registry_api.ContainerRegistry.get_paginated_response")
 def test_get_tags(mock_get: MagicMock) -> None:
     mock_get.return_value = ["foo", "bar"]
-    result = get_tags("registry", "docker_cfg", "repo")
+
+    registry = ContainerRegistry("registry", "docker_cfg")
+    result = registry.get_tags("repo")
 
     assert result == ["foo", "bar"]
     mock_get.assert_called_once_with(
