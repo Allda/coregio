@@ -1,0 +1,22 @@
+---
+name: validation
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  tox:
+    name: Run unit tests and linters
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        run: |
+          pip install tox tox-pdm pdm
+          pdm venv create 3.10
+          source .venv/bin/activate
+
+      - name: Tox
+        run: tox
