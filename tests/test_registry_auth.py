@@ -89,6 +89,7 @@ def test_HTTPBearerAuth_get_token(
 
     mock_response = MagicMock()
     mock_response.json.return_value = {"token": "bar"}
+    mock_response.status_code = 200
     mock_get.return_value = mock_response
     resp = bearer_auth._get_token("foo", "repo")
 
