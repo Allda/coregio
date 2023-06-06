@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 from coregio import utils
-from coregio.registry_auth import HTTPBearerAuth, HTTPBasicAuthWithB64
+from coregio.registry_auth import HTTPBearerAuth, HTTPOAuth2, HTTPBasicAuthWithB64
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +47,10 @@ class ContainerRegistry:
     DEFAULT_TIMEOUT = (7.0, 15.0)
 
     def __init__(
-        self, url: str, docker_cfg: Optional[str] = None, session: Optional[Any] = None
+        self,
+        url: str,
+        docker_cfg: Optional[str] = None,
+        session: Optional[Any] = None,
     ) -> None:
         """
         Args:
@@ -82,6 +85,10 @@ class ContainerRegistry:
         if not auth:
             return None
 
+        # if this is oauth2 auth, token is in identity_token
+        if auth.get("identitytoken"):
+            return auth["identitytoken"]
+        # otherwise use auth
         return auth.get("auth")
 
     def _select_registry_auth_token_from_docker_config(
@@ -184,11 +191,10 @@ class ContainerRegistry:
         Returns:
             requests.Response: HTTP response object
         """
-
         # Registry uses different auth methods and we don't know which one to use until
         # we make a request. This loop iterates over several methods and make requests
         # until it successfully returns valid response
-        for auth_method in (HTTPBearerAuth, HTTPBasicAuthWithB64):
+        for auth_method in (HTTPBearerAuth, HTTPOAuth2, HTTPBasicAuthWithB64):
             session = self._get_session(auth_method)
 
             resp = session.get(

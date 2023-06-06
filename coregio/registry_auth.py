@@ -1,6 +1,18 @@
-"""Registry authentication module."""
+"""
+Registry authentication module.
+Copyright (c) 2018, 2019 Red Hat, Inc
+All rights reserved.
 
+This software may be modified and distributed under the terms
+of the BSD license. See the LICENSE file for details.
+"""
+
+from __future__ import absolute_import, unicode_literals
+
+import json
+import logging
 import re
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -8,61 +20,40 @@ from requests.auth import AuthBase
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import parse_dict_header
 
+DEFAULT_TIMEOUT = (7.0, 15.0)
+
 # This module comes from atomic-reactor
 # https://github.com/containerbuildsystem/atomic-reactor/blob/1.6.41/atomic_reactor/auth.py
 
+LOG = logging.getLogger(__name__)
 
-class HTTPBearerAuth(AuthBase):
+
+class BearerAuthBase(AuthBase):
     """
-    Performs Bearer authentication for the given Request object.
-
-    username and password are optional. If provided, they will be used
-    when fetching the Bearer token from realm. Otherwise, Bearer token
-    is retrieved with anonymous access.
-
-    auth_b64 may be provided for authentication (instead of username and
-    password).
-
-    Once Bearer token is retrieved, it will be cached and used in subsequent
-    requests. Since tokens are specific to repositories, the token cache may
-    store multiple tokens.
-
-    Supports registry v2 API only.
+    Base class for Bearer token authentication.
     """
 
     BEARER_PATTERN = re.compile(r"bearer ", flags=re.IGNORECASE)
     V2_REPO_PATTERN = re.compile(r"^/v2/(.*)/(manifests|tags|blobs)/")
 
-    def __init__(self, auth_b64, verify=True, access=None):
-        """Initialize HTTPBearerAuth object.
-
-        :param auth_b64: str, base64 credentials as described in RFC 7617
-        :param verify: bool, whether or not to verify server identity when
-            fetching Bearer token from realm
-        :param access: iter<str>, iterable (list, tuple, etc) of access to be
-            requested; possible values to be included are 'pull' and/or 'push';
-            defaults to ('pull',)
-        """
-        self.auth_b64 = auth_b64
-        self.verify = verify
-        self.access = access or ("pull",)
-
+    def __init__(self) -> None:
+        """Initialize HTTPBearerAuth object."""
         self.token_cache = {}
 
-    def __call__(self, response):
+    def __call__(self, response: Any) -> Any:
         repo = self._get_repo_from_url(response.url)
 
         if repo in self.token_cache:
             self._set_header(response, repo)
             return response
 
-        def handle_401_with_repo(resp, **kwargs):  # pragma: no cover
+        def handle_401_with_repo(resp: Any, **kwargs):  # pragma: no cover
             return self.handle_401(resp, repo, **kwargs)
 
         response.register_hook("response", handle_401_with_repo)
         return response
 
-    def handle_401(self, response, repo, **kwargs):
+    def handle_401(self, response: Any, repo: str, **kwargs) -> Any:
         """Fetch Bearer token and retry."""
         if response.status_code != 401:
             return response
@@ -93,7 +84,59 @@ class HTTPBearerAuth(AuthBase):
 
         return retry_response
 
-    def _get_token(self, auth_info, repo):
+    def _set_header(self, response: Any, repo: str) -> None:
+        response.headers["Authorization"] = f"Bearer {self.token_cache[repo]}"
+
+    def _get_repo_from_url(self, url: str) -> Optional[str]:
+        url_parts = urlparse(url)
+        repo = None
+        v2_match = self.V2_REPO_PATTERN.search(url_parts.path)
+        if v2_match:
+            repo = v2_match.group(1)
+        return repo
+
+    def _get_token(
+        self, auth_info: str, repo: str
+    ) -> Optional[str]:  # pragma: no cover
+        raise NotImplementedError()
+
+
+# pylint: disable=too-few-public-methods
+class HTTPBearerAuth(BearerAuthBase):  # pragma: no cover
+    """
+    Performs Bearer authentication for the given Request object.
+
+    username and password are optional. If provided, they will be used
+    when fetching the Bearer token from realm. Otherwise, Bearer token
+    is retrivied with anonymous access.
+
+    auth_b64 may be provided for authentication (instead of username and
+    password).
+
+    Once Bearer token is retrieved, it will be cached and used in subsequent
+    requests. Since tokens are specific to repositories, the token cache may
+    store multiple tokens.
+
+    Supports registry v2 API only.
+    """
+
+    def __init__(self, auth_b64, verify=True, access=None):
+        """Initialize HTTPBearerAuth object.
+
+        :param auth_b64: str, base64 credentials as described in RFC 7617
+        :param verify: bool, whether or not to verify server identity when
+            fetching Bearer token from realm
+        :param access: iter<str>, iterable (list, tuple, etc) of access to be
+            requested; possible values to be included are 'pull' and/or 'push';
+            defaults to ('pull',)
+        """
+        self.auth_b64 = auth_b64
+        self.verify = verify
+        self.access = access or ("pull",)
+
+        super().__init__()
+
+    def _get_token(self, auth_info: str, repo: str) -> Optional[str]:
         bearer_info = parse_dict_header(self.BEARER_PATTERN.sub("", auth_info, count=1))
         # If repo could not be determined, do not set scope - implies
         # global access
@@ -105,21 +148,21 @@ class HTTPBearerAuth(AuthBase):
         if self.auth_b64:
             realm_auth = HTTPBasicAuthWithB64(self.auth_b64)
 
-        # registry_proxy = os.environ.get("EXTERNAL_REGISTRY_PROXY")
-        # if registry_proxy:
-        #     proxies = {"https": registry_proxy}
-        # else:
-        #     proxies = None
-        proxies = None
         realm_response = requests.get(
             realm,
             params=bearer_info,
             verify=self.verify,
             auth=realm_auth,
-            proxies=proxies,
-            timeout=60,
+            timeout=DEFAULT_TIMEOUT,
         )
-        realm_response.raise_for_status()
+        if realm_response.status_code != 200:
+            LOG.info(
+                "Registry challenge %s responded with %d - %s",
+                realm,
+                realm_response.status_code,
+                realm_response.text,
+            )
+            return None
 
         response = realm_response.json()
 
@@ -131,16 +174,76 @@ class HTTPBearerAuth(AuthBase):
                 return response[token_keys]
         return None
 
-    def _set_header(self, response, repo):
-        response.headers["Authorization"] = f"Bearer {self.token_cache[repo]}"
 
-    def _get_repo_from_url(self, url):
-        url_parts = urlparse(url)
-        repo = None
-        v2_match = self.V2_REPO_PATTERN.search(url_parts.path)
-        if v2_match:
-            repo = v2_match.group(1)
-        return repo
+# pylint: disable=too-few-public-methods
+class HTTPOAuth2(BearerAuthBase):  # pragma: no cover
+    """
+    Performs OAuth2 authentication for the given Request object.
+
+    Once Bearer token is retrieved, it will be cached and used in subsequent
+    requests. Since tokens are specific to repositories, the token cache may
+    store multiple tokens.
+
+    Supports registry v2 API only.
+    """
+
+    def __init__(self, refresh_token: str) -> None:
+        """Initialize HTTPOAuth2 object.
+
+        :param refresh_token: str, identity_token from dockerconfig.json
+        """
+        self.refresh_token = refresh_token
+        super().__init__()
+
+    def _get_token(self, auth_info: str, repo: str) -> Optional[str]:
+        """
+        Acquires a Bearer token from the registry using OAuth2 flow.
+        """
+        # convert WWW-Authenticate header into a dict
+        # example: Bearer ream="url",service="test.azurecr.io"
+        # -> {"realm": "url", "service": "test.azurecr.io"}
+        bearer_info = parse_dict_header(self.BEARER_PATTERN.sub("", auth_info, count=1))
+
+        params = {
+            "service": bearer_info.get("service"),
+            "grant_type": "refresh_token",
+            "refresh_token": self.refresh_token,
+            "client_id": "mercury",
+        }
+
+        # If repo could not be determined, do not set scope -> implies global access
+        if repo:
+            params["scope"] = f"repository:{repo}:pull"
+
+        # make the request to the registry
+        url = bearer_info.get("realm")
+        realm_response = requests.post(
+            url,
+            data=params,
+            verify=True,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=DEFAULT_TIMEOUT,
+        )
+        if realm_response.status_code != 200:
+            LOG.info(
+                "Registry challenge %s responded with %d - %s\nHeaders: %s",
+                url,
+                realm_response.status_code,
+                realm_response.text,
+                realm_response.headers,
+            )
+            return None
+
+        # Based on https://docs.docker.com/registry/spec/auth/oauth/#response-fields
+        # response contains access_token and optionally additional refresh_token
+        try:
+            response = realm_response.json()
+            if response.get("refresh_token"):
+                self.refresh_token = response.get("refresh_token")
+            return response["access_token"]
+        except (json.decoder.JSONDecodeError, KeyError):
+            LOG.info("Registry %s did not return oauth bearer token", url)
+        return None
 
 
 # pylint: disable=too-few-public-methods

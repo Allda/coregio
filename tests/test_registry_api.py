@@ -14,6 +14,7 @@ from coregio.registry_api import ContainerRegistry
         ("quay.io", "qwe", None, None),
         ("quay.io", "{}", None, None),
         ("quay.io", "{}", {"auth": "Zm9vOmJhcg=="}, "Zm9vOmJhcg=="),
+        ("quay.io", "{}", {"auth": "Zm9vOmJhcg==", "identitytoken": "abc"}, "abc"),
     ],
 )
 @patch(
