@@ -71,7 +71,7 @@ def test__get_session(mock_auth_token: MagicMock) -> None:
 
     mock_auth = MagicMock()
 
-    def auth_method(token: Any) -> Any:
+    def auth_method(token: Any, proxy: Any = None) -> Any:
         return mock_auth
 
     session = registry._get_session(auth_method)

@@ -51,6 +51,7 @@ class ContainerRegistry:
         url: str,
         docker_cfg: Optional[str] = None,
         session: Optional[Any] = None,
+        proxy: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -63,6 +64,7 @@ class ContainerRegistry:
         self.docker_cfg = docker_cfg
 
         self.session = session or requests.Session()
+        self.proxy = proxy
 
     def _get_auth_token(self) -> Any:
         """
@@ -161,7 +163,7 @@ class ContainerRegistry:
         """
 
         auth_token = self._get_auth_token()
-        self.session.auth = auth_class(auth_token)
+        self.session.auth = auth_class(auth_token, proxy=self.proxy)
         utils.add_session_retries(self.session)
 
         return self.session
@@ -203,6 +205,7 @@ class ContainerRegistry:
                 headers=headers,
                 verify=verify,
                 timeout=self.DEFAULT_TIMEOUT,
+                proxies={"https": self.proxy} if self.proxy else None,
             )
 
             if resp.status_code != 401:
