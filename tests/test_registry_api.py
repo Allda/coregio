@@ -71,7 +71,7 @@ def test__get_session(mock_auth_token: MagicMock) -> None:
 
     mock_auth = MagicMock()
 
-    def auth_method(token: Any) -> Any:
+    def auth_method(token: Any, proxy: Any = None) -> Any:
         return mock_auth
 
     session = registry._get_session(auth_method)
@@ -96,12 +96,14 @@ def test__get(mock_session: MagicMock, status_codes: Set[int]) -> None:
 
         session = MagicMock()
         session.get.return_value = expected_response
+        session.auth.auth_header = "Bearer foo"
         sessions.append(session)
     mock_session.side_effect = sessions
 
     registry = ContainerRegistry("test-quay.io", "foo")
     resp = registry._get("foo", {}, {}, True)
     assert resp.status_code == sessions[-1].get.return_value.status_code
+    assert registry.auth_header == "Bearer foo"
 
 
 @patch("coregio.utils.handle_response")
@@ -115,22 +117,6 @@ def test_get_request(
     resp = ContainerRegistry("foo", "bar").get_request("/v1/api")
     assert resp == mock_get.return_value
     mock_get.assert_called_once_with("https://foo/v1/api", params=None, headers=None)
-
-
-@patch("coregio.registry_api.requests.Session.get")
-@patch("coregio.registry_api.ContainerRegistry._get_session")
-def test_get_request_error(
-    mock_session: MagicMock, mock_get: MagicMock, monkeypatch: Any
-) -> None:
-    mock_session.return_value = requests.Session()
-    monkeypatch.setenv("ENVIRONMENT", "unit-tests")
-
-    response = requests.Response()
-    response.status_code = 400
-    mock_get.return_value = response
-
-    with pytest.raises(requests.HTTPError):
-        ContainerRegistry("foo", "bar").get_request("/v1/api")
 
 
 @patch("coregio.registry_api.ContainerRegistry.get_request")

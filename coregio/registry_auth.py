@@ -36,9 +36,12 @@ class BearerAuthBase(AuthBase):
     BEARER_PATTERN = re.compile(r"bearer ", flags=re.IGNORECASE)
     V2_REPO_PATTERN = re.compile(r"^/v2/(.*)/(manifests|tags|blobs)/")
 
-    def __init__(self) -> None:
+    def __init__(self, proxy: Optional[str] = None) -> None:
         """Initialize HTTPBearerAuth object."""
         self.token_cache = {}
+        self.proxy = proxy
+
+        self.last_auth_header = None
 
     def __call__(self, response: Any) -> Any:
         repo = self._get_repo_from_url(response.url)
@@ -84,8 +87,19 @@ class BearerAuthBase(AuthBase):
 
         return retry_response
 
+    @property
+    def auth_header(self) -> Optional[str]:
+        """
+        Auth header used in the last request.
+
+        Returns:
+            Optional[str]: Auth header used in the last request.
+        """
+        return self.last_auth_header
+
     def _set_header(self, response: Any, repo: str) -> None:
-        response.headers["Authorization"] = f"Bearer {self.token_cache[repo]}"
+        self.last_auth_header = f"Bearer {self.token_cache[repo]}"
+        response.headers["Authorization"] = self.last_auth_header
 
     def _get_repo_from_url(self, url: str) -> Optional[str]:
         url_parts = urlparse(url)
@@ -120,7 +134,7 @@ class HTTPBearerAuth(BearerAuthBase):  # pragma: no cover
     Supports registry v2 API only.
     """
 
-    def __init__(self, auth_b64, verify=True, access=None):
+    def __init__(self, auth_b64, *args, verify=True, access=None, **kwargs):
         """Initialize HTTPBearerAuth object.
 
         :param auth_b64: str, base64 credentials as described in RFC 7617
@@ -134,7 +148,7 @@ class HTTPBearerAuth(BearerAuthBase):  # pragma: no cover
         self.verify = verify
         self.access = access or ("pull",)
 
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def _get_token(self, auth_info: str, repo: str) -> Optional[str]:
         bearer_info = parse_dict_header(self.BEARER_PATTERN.sub("", auth_info, count=1))
@@ -154,6 +168,7 @@ class HTTPBearerAuth(BearerAuthBase):  # pragma: no cover
             verify=self.verify,
             auth=realm_auth,
             timeout=DEFAULT_TIMEOUT,
+            proxies={"https": self.proxy} if self.proxy else None,
         )
         if realm_response.status_code != 200:
             LOG.info(
@@ -187,13 +202,13 @@ class HTTPOAuth2(BearerAuthBase):  # pragma: no cover
     Supports registry v2 API only.
     """
 
-    def __init__(self, refresh_token: str) -> None:
+    def __init__(self, refresh_token: str, *args, **kwargs) -> None:
         """Initialize HTTPOAuth2 object.
 
         :param refresh_token: str, identity_token from dockerconfig.json
         """
         self.refresh_token = refresh_token
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def _get_token(self, auth_info: str, repo: str) -> Optional[str]:
         """
@@ -223,6 +238,7 @@ class HTTPOAuth2(BearerAuthBase):  # pragma: no cover
             verify=True,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=DEFAULT_TIMEOUT,
+            proxies={"https": self.proxy} if self.proxy else None,
         )
         if realm_response.status_code != 200:
             LOG.info(
@@ -255,13 +271,22 @@ class HTTPBasicAuthWithB64(AuthBase):
     it by receiving the base64 string.
     """
 
-    def __init__(self, auth):
+    def __init__(self, auth, proxy: Optional[str] = None):
         """Initialize HTTPBasicAuthWithB64 object.
 
         :param auth: str, base64 credentials as described in RFC 7617
         """
         self.auth = auth
+        self.proxy = proxy
+
+        self.last_auth_header = f"Basic {self.auth}"
+
+    @property
+    def auth_header(self) -> Optional[str]:
+        """Return the last auth header."""
+        return self.last_auth_header
 
     def __call__(self, response):
-        response.headers["Authorization"] = f"Basic {self.auth}"
+        response.headers["Authorization"] = self.auth_header
+
         return response
