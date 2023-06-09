@@ -41,6 +41,15 @@ def test_HTTPBearerAuth(
     response.register_hook.assert_called_once()
 
 
+def test_HTTPBearerAuth_auth_token(
+    bearer_auth: registry_auth.HTTPBearerAuth,
+) -> None:
+    response = MagicMock()
+
+    bearer_auth.last_auth_header = "foo"
+    assert bearer_auth.auth_header == "foo"
+
+
 @patch("coregio.registry_auth.extract_cookies_to_jar")
 @patch("coregio.registry_auth.HTTPBearerAuth._get_token")
 def test_HTTPBearerAuth_handle_401(

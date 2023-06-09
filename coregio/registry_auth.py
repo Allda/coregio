@@ -89,6 +89,12 @@ class BearerAuthBase(AuthBase):
 
     @property
     def auth_header(self) -> Optional[str]:
+        """
+        Auth header used in the last request.
+
+        Returns:
+            Optional[str]: Auth header used in the last request.
+        """
         return self.last_auth_header
 
     def _set_header(self, response: Any, repo: str) -> None:
@@ -273,10 +279,11 @@ class HTTPBasicAuthWithB64(AuthBase):
         self.auth = auth
         self.proxy = proxy
 
-        self.last_auth_header= f"Basic {self.auth}"
+        self.last_auth_header = f"Basic {self.auth}"
 
     @property
     def auth_header(self) -> Optional[str]:
+        """Return the last auth header."""
         return self.last_auth_header
 
     def __call__(self, response):

@@ -210,8 +210,8 @@ class ContainerRegistry:
                 proxies={"https": self.proxy} if self.proxy else None,
             )
 
+            self.auth_header = session.auth.auth_header
             if resp.status_code != 401:
-                self.auth_header = session.auth.auth_header
                 return resp
             LOGGER.debug(
                 "Auth method %s was un-successful. Trying another one. %s",
