@@ -33,7 +33,6 @@ print(tags)
 manifest = registry.get_manifest(
     "prometheus/node-exporter",
     "latest",
-    manifest_types="oci_index"
 )
 print(manifest)
 {'schemaVersion': 2, 'mediaType': 'application/vnd.docker.distribution.manifest.v2+json', 'config': {'mediaType': 'application/vnd.docker.container.image.v1+json', 'size': 3361, 'digest': 'sha256:173d3570a5af2b2ef8816b40af3ca985280549520e8d328a7f20333d9f354d1b'}, 'layers': [{'mediaType': 'application/vnd.docker.image.rootfs.diff.tar.gzip', 'size': 777654, 'digest': 'sha256:e6b9e25f5d0157c1c76c9d3680c4645368c9ac87cb008b5eddf9d856b8551373'}, {'mediaType': 'application/vnd.docker.image.rootfs.diff.tar.gzip', 'size': 486261, 'digest': 'sha256:0c6a06713be86bfb61b5f1ce1217f7b509c7ea7b894af65149cafac5004ee28f'}, {'mediaType': 'application/vnd.docker.image.rootfs.diff.tar.gzip', 'size': 10458504, 'digest': 'sha256:15ef7072c2ab4f35955068b02a09e669a5613d5bfca4f5c442c45b958036f17a'}]}
