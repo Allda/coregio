@@ -66,6 +66,8 @@ class ContainerRegistry:
         self.session = session or requests.Session()
         self.proxy = proxy
 
+        self.auth_header = None
+
     def _get_auth_token(self) -> Any:
         """
         Extract registry auth token from docker_config_json.
@@ -209,6 +211,7 @@ class ContainerRegistry:
             )
 
             if resp.status_code != 401:
+                self.auth_header = session.auth.auth_header
                 return resp
             LOGGER.debug(
                 "Auth method %s was un-successful. Trying another one. %s",

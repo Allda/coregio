@@ -41,6 +41,8 @@ class BearerAuthBase(AuthBase):
         self.token_cache = {}
         self.proxy = proxy
 
+        self.last_auth_header = None
+
     def __call__(self, response: Any) -> Any:
         repo = self._get_repo_from_url(response.url)
 
@@ -85,8 +87,13 @@ class BearerAuthBase(AuthBase):
 
         return retry_response
 
+    @property
+    def auth_header(self) -> Optional[str]:
+        return self.last_auth_header
+
     def _set_header(self, response: Any, repo: str) -> None:
-        response.headers["Authorization"] = f"Bearer {self.token_cache[repo]}"
+        self.last_auth_header = f"Bearer {self.token_cache[repo]}"
+        response.headers["Authorization"] = self.last_auth_header
 
     def _get_repo_from_url(self, url: str) -> Optional[str]:
         url_parts = urlparse(url)
@@ -266,6 +273,13 @@ class HTTPBasicAuthWithB64(AuthBase):
         self.auth = auth
         self.proxy = proxy
 
+        self.last_auth_header= f"Basic {self.auth}"
+
+    @property
+    def auth_header(self) -> Optional[str]:
+        return self.last_auth_header
+
     def __call__(self, response):
-        response.headers["Authorization"] = f"Basic {self.auth}"
+        response.headers["Authorization"] = self.auth_header
+
         return response
