@@ -2,13 +2,31 @@
 
 [project]
 name = "coregio"
-version = "0.3.0"
+version = "0.4.0"
 description = "Python container registry API library."
 authors = [{ name = "Ales Raszka", email = "araszka@redhat.com" }]
 dependencies = []
 requires-python = ">=3.10"
 readme = "README.md"
-license = { text = "MIT" }
+license = { file = "LICENSE.txt" }
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet :: Proxy Servers",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Allda/coregio"
+"Bug Tracker" = "https://github.com/Allda/coregio/issues"
+
 [project.optional-dependencies]
 tox = ["tox-pdm>=0.6.1", "tox>=4.5.2"]
 coregio-dev = [
