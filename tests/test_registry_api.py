@@ -140,33 +140,17 @@ def test_paginated_response(mock_get: MagicMock) -> None:
 
 @patch("coregio.utils.handle_response")
 @patch("coregio.registry_api.ContainerRegistry.get_request")
-def test_get_manifest(
+def test_get_manifest_raw(
     mock_get: MagicMock,
     mock_handle: MagicMock,
 ) -> None:
-    get = MagicMock()
-    get.json.return_value = {"foo": "bar"}
-    mock_get.return_value = get
+    mock_response = MagicMock()
+    mock_get.return_value = mock_response
     mock_handle.return_value = None
     registry = ContainerRegistry("registry", "docker_cfg")
-    result = registry.get_manifest("repo", "ref")
+    result = registry.get_manifest_raw("repo", "ref")
 
-    assert result == {"foo": "bar"}
-    mock_get.assert_called_once_with(
-        "v2/repo/manifests/ref",
-        headers={
-            "Accept": "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
-        },
-    )
-
-    mock_get.reset_mock()
-    response = requests.Response()
-    response.status_code = 200
-    response.headers = {"Docker-Content-Digest": "demo_manifest_1"}  # type: ignore
-    mock_get.return_value = response
-    result = registry.get_manifest("repo", "ref", is_headers=True)
-    assert result == {"Docker-Content-Digest": "demo_manifest_1"}
-
+    assert result == mock_response
     mock_get.assert_called_once_with(
         "v2/repo/manifests/ref",
         headers={
@@ -181,47 +165,36 @@ def test_get_manifest(
         registry.get_manifest("repo", "ref")
 
 
-@patch("coregio.utils.handle_response")
-@patch("coregio.registry_api.ContainerRegistry.get_request")
-def test_get_manifest_headers(
-    mock_get: MagicMock,
-    mock_handle: MagicMock,
+@patch("coregio.registry_api.ContainerRegistry.get_manifest_raw")
+def test_get_manifest(
+    mock_get_manifest_raw: MagicMock,
 ) -> None:
-    get = MagicMock()
-    get.headers = {"foo": "bar"}
-    mock_get.return_value = get
-    mock_handle.return_value = None
+    manifest_rsp = MagicMock()
+    mock_get_manifest_raw.return_value = manifest_rsp
+    registry_api = ContainerRegistry(url="registry")
+    result = registry_api.get_manifest("repo", "ref")
+
+    assert result == manifest_rsp.json()
+    mock_get_manifest_raw.assert_called_once_with("repo", "ref", None)
+
+    mock_get_manifest_raw.reset_mock()
+    result = registry_api.get_manifest("repo", "ref", is_headers=True)
+
+    assert result == manifest_rsp.headers
+    mock_get_manifest_raw.assert_called_once_with("repo", "ref", None)
+
+
+@patch("coregio.registry_api.ContainerRegistry.get_manifest")
+def test_get_manifest_headers(
+    mock_get_manifest: MagicMock,
+) -> None:
+    manifest = MagicMock()
+    mock_get_manifest.return_value = manifest
     registry_api = ContainerRegistry(url="registry")
     result = registry_api.get_manifest_headers("repo", "ref")
 
-    assert result == {"foo": "bar"}
-    mock_get.assert_called_once_with(
-        "v2/repo/manifests/ref",
-        headers={
-            "Accept": "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
-        },
-    )
-
-    mock_get.reset_mock()
-    response = requests.Response()
-    response.status_code = 200
-    response.headers = {"Docker-Content-Digest": "demo_manifest_1"}  # type: ignore
-    mock_get.return_value = response
-    result = registry_api.get_manifest_headers("repo", "ref")
-    assert result == {"Docker-Content-Digest": "demo_manifest_1"}
-
-    mock_get.assert_called_once_with(
-        "v2/repo/manifests/ref",
-        headers={
-            "Accept": "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json"
-        },
-    )
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 400
-    mock_get.side_effect = requests.HTTPError(response=mock_resp)
-    with pytest.raises(requests.HTTPError):
-        registry_api.get_manifest_headers("repo", "ref")
+    assert result == manifest
+    mock_get_manifest.assert_called_once_with("repo", "ref", is_headers=True)
 
 
 @patch("coregio.registry_api.ContainerRegistry.get_paginated_response")

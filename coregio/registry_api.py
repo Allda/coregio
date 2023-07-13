@@ -293,6 +293,30 @@ class ContainerRegistry:
 
         return data[:limit] if limit else data
 
+    def get_manifest_raw(
+        self, repository: str, reference: str, manifest_types: Any = None
+    ) -> Any:
+        """
+        Get manifest raw response in a repository by a reference
+        (manifest digest or tag).
+
+        Args:
+            repository (str): Repository name
+            reference (str): Manifest digest or tag
+            manifest_types (Optional, List[str]): What type of manifest
+                to get, i.e. index, manifest, ...
+
+        Returns:
+            Any: Manifest raw http response object
+        """
+        if not manifest_types:
+            manifest_types = ["docker_manifest_v2", "oci_manifest"]
+
+        accept_header = ", ".join([ACCEPT_HEADERS[type] for type in manifest_types])
+        headers = {"Accept": accept_header}
+        uri = f"v2/{repository}/manifests/{reference}"
+        return self.get_request(uri, headers=headers)
+
     def get_manifest(
         self,
         repository: str,
@@ -314,13 +338,7 @@ class ContainerRegistry:
             dict: Manifest in the given repository or headers of the response
                 (depends on value of is_headers parameter)
         """
-        if not manifest_types:
-            manifest_types = ["docker_manifest_v2", "oci_manifest"]
-
-        accept_header = ", ".join([ACCEPT_HEADERS[type] for type in manifest_types])
-        headers = {"Accept": accept_header}
-        uri = f"v2/{repository}/manifests/{reference}"
-        rsp = self.get_request(uri, headers=headers)
+        rsp = self.get_manifest_raw(repository, reference, manifest_types)
         if is_headers:
             return rsp.headers
         return rsp.json()
