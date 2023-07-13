@@ -49,6 +49,7 @@ print(manifest)
 
 ```
 
+
 ```python
 # Using a proxy
 registry = ContainerRegistry(

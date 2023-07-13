@@ -5,6 +5,7 @@ on:  # yamllint disable-line rule:truthy
   push:
     tags:
       - '*'
+  workflow_dispatch:
 jobs:
   pypi-publish:
     name: Upload release to PyPI
