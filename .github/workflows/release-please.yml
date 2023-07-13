@@ -1,0 +1,26 @@
+on:
+  push:
+    branches:
+      - release-please
+
+permissions:
+  contents: write
+  pull-requests: write
+
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: python
+          package-name: coregio
+          default-branch: release-please
+          changelog-types:  '[{"type":"feat","section":"Features","hidden":false},
+              {"type":"fix","section":"Bug Fixes","hidden":false},
+              {"type":"docs","section":"Documentation","hidden":false},
+              {"type":"test","section":"Tests","hidden":false},
+              {"type":"chore","section":"Miscellaneous","hidden":false},
+              {"type":"ci","section":"Miscellaneous","hidden":false}]'
