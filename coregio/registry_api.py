@@ -1,7 +1,6 @@
 """Container registry API implementation."""
 import json
 import logging
-import re
 from typing import Any, Dict, List, Optional, Callable
 from urllib.parse import urljoin, urlparse
 
@@ -32,6 +31,7 @@ SPECIAL_DOCKER_ALIASES = {
     "docker.io": "index.docker.io",
     "registry-1.docker.io": "index.docker.io",
     "hub.docker.com": "index.docker.io",
+    "registry.hub.docker.com": "index.docker.io",
 }
 
 
@@ -59,7 +59,7 @@ class ContainerRegistry:
         docker_cfg (Optional, str): DockerConfigJson string
         """
 
-        self.url = SPECIAL_DOCKER_ALIASES.get(url, url)
+        self.url = self._normalize_registry_url(url)
         self._original_url = url
         self.docker_cfg = docker_cfg
 
@@ -67,6 +67,31 @@ class ContainerRegistry:
         self.proxy = proxy
 
         self.auth_header = None
+
+    @staticmethod
+    def _normalize_registry_url(url: str) -> str:
+        """
+        Normalize registry URL:
+        - If needed, the hostname is replaced according
+          to the SPECIAL_DOCKER_ALIASES mapping.
+        - Scheme is added if missing.
+        - Port number is preserved if present.
+        - Path is discarded if present.
+
+        Args:
+            url: Registry URL
+
+        Returns:
+            str: Normalized registry URL
+        """
+        url_with_scheme = utils.add_scheme_if_missing(url)
+        parsed = urlparse(url_with_scheme)
+        hostname = SPECIAL_DOCKER_ALIASES.get(parsed.hostname, parsed.hostname)
+
+        normalized_url = f"{parsed.scheme}://{hostname}"
+        if parsed.port:
+            normalized_url = f"{normalized_url}:{parsed.port}"
+        return normalized_url
 
     def _get_auth_token(self) -> Any:
         """
@@ -120,8 +145,7 @@ class ContainerRegistry:
                 return auth
 
             # Add a schema to the URL if missing
-            if not re.search(r"^[A-Za-z0-9+.\-]+://", registry_key):
-                registry_key = f"https://{registry_key}"
+            registry_key = utils.add_scheme_if_missing(registry_key)
 
             # Parse URL and compare matching hostname
             parsed_key = urlparse(registry_key)
@@ -239,7 +263,7 @@ class ContainerRegistry:
             Response: The resulting Response object
         """
 
-        full_url = urljoin(f"https://{self.url}", path)
+        full_url = urljoin(self.url, path)
 
         LOGGER.debug("Querying registry: GET %s %s %s", full_url, headers, params)
         resp = self._get(full_url, params=params, headers=headers)

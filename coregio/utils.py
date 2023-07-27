@@ -2,6 +2,7 @@
 Utilities for http queries
 """
 import logging
+import re
 from typing import Any
 
 from requests import Session
@@ -76,3 +77,18 @@ def add_session_retries(
     adapter = HTTPAdapter(max_retries=retries)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+
+
+def add_scheme_if_missing(url: str) -> str:
+    """
+    Add https:// to the url if it does not contain a scheme.
+
+    Args:
+        url: Url to check
+
+    Returns:
+        str: Url containing a scheme
+    """
+    if not re.search(r"^[A-Za-z0-9+.\-]+://", url):
+        return f"https://{url}"
+    return url
