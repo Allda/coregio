@@ -8,6 +8,33 @@ from coregio.registry_api import ContainerRegistry
 
 
 @pytest.mark.parametrize(
+    ["url", "expected_url"],
+    [
+        ("quay.io", "https://quay.io"),
+        ("http://quay.io", "http://quay.io"),
+        ("quay.io:8080", "https://quay.io:8080"),
+        ("quay.io/path", "https://quay.io"),
+        ("http://quay.io:8080/path", "http://quay.io:8080"),
+        ("registry-1.docker.io", "https://index.docker.io"),
+        ("hub.docker.com", "https://index.docker.io"),
+        ("registry.hub.docker.com", "https://index.docker.io"),
+        ("docker.io", "https://index.docker.io"),
+        ("http://docker.io", "http://index.docker.io"),
+        ("docker.io:8080", "https://index.docker.io:8080"),
+        ("docker.io/path", "https://index.docker.io"),
+        ("http://docker.io:8080/path", "http://index.docker.io:8080"),
+    ],
+)
+def test__normalize_registry_url(
+    url: str,
+    expected_url: str,
+) -> None:
+    result_url = ContainerRegistry._normalize_registry_url(url)
+
+    assert result_url == expected_url
+
+
+@pytest.mark.parametrize(
     ["registry", "cfg", "auth", "token"],
     [
         ("quay.io", None, None, None),
