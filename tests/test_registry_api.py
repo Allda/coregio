@@ -235,3 +235,52 @@ def test_get_tags(mock_get: MagicMock) -> None:
     mock_get.assert_called_once_with(
         "v2/repo/tags/list", list_name="tags", page_size=100, limit=2000
     )
+
+
+@pytest.mark.parametrize(
+    ["manifest", "layers"],
+    [
+        (
+            {
+                "schemaVersion": 1,
+                "fsLayers": [{"blobSum": "2"}, {"blobSum": "1"}],
+            },
+            ["1", "2"],
+        ),
+        (
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                "layers": [{"digest": "1"}, {"digest": "2"}],
+            },
+            ["1", "2"],
+        ),
+        (
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "layers": [{"digest": "1"}, {"digest": "2"}],
+            },
+            ["1", "2"],
+        ),
+        (
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+            },
+            [],
+        ),
+    ],
+)
+@patch("coregio.registry_api.ContainerRegistry.get_manifest")
+def test_get_layers(
+    mock_get_manifest: MagicMock,
+    manifest: Any,
+    layers: Any,
+) -> None:
+    mock_get_manifest.return_value = manifest
+    registry_api = ContainerRegistry(url="registry")
+    result = registry_api.get_layers("repo", "ref")
+
+    assert result == layers
+    mock_get_manifest.assert_called_once_with("repo", "ref")
