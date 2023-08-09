@@ -401,3 +401,30 @@ class ContainerRegistry:
         return self.get_paginated_response(
             uri, list_name="tags", page_size=page_size, limit=limit
         )
+
+    def get_layers(
+        self,
+        repository: str,
+        reference: str,
+    ) -> List[str]:
+        """
+        Get hashes of layers in a repository by a reference (manifest digest or tag).
+
+        Args:
+            repository (str): Repository name
+            reference (str): Manifest digest or tag
+
+        Returns:
+            list: Hashes of the layers ordered from the base image
+                (the base image is at index 0)
+        """
+        manifest = self.get_manifest(repository, reference)
+        if manifest["schemaVersion"] == 1:
+            return [layer["blobSum"] for layer in manifest["fsLayers"]][::-1]
+        if manifest["mediaType"] in (
+            ACCEPT_HEADERS["docker_manifest_v2"],
+            ACCEPT_HEADERS["oci_manifest"],
+        ):
+            return [layer["digest"] for layer in manifest["layers"]]
+        LOGGER.warning("Failed to extract layers for %s:%s", repository, reference)
+        return []
