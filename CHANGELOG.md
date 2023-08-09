@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Allda/coregio/compare/v0.5.2...v0.6.0) (2023-08-09)
+
+
+### Features
+
+* add ability to get layer digests ([a36c1ff](https://github.com/Allda/coregio/commit/a36c1ff5eb4594617f2f9f22e89c8217ce92ffa1))
+
 ## [0.5.2](https://github.com/Allda/coregio/compare/v0.5.1...v0.5.2) (2023-07-28)
 
 
