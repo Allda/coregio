@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/Allda/coregio/compare/v0.7.0...v0.7.1) (2024-01-18)
+
+
+### Bug Fixes
+
+* Add session retries to constructor to avoid starting new connections ([61901a7](https://github.com/Allda/coregio/commit/61901a76bc625d6f936e3a687f7b658f5c450abf))
+
 ## [0.7.0](https://github.com/Allda/coregio/compare/v0.6.0...v0.7.0) (2024-01-18)
 
 
