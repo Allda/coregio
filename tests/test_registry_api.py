@@ -7,6 +7,21 @@ import requests
 from coregio.registry_api import ContainerRegistry
 
 
+def test_init_new_session():
+    registry_api = ContainerRegistry(url="fake_url")
+    adapter = registry_api.session.adapters["https://"]
+
+    assert adapter.max_retries.total == 10
+
+
+def test_init_pass_session():
+    session = requests.Session()
+    registry_api = ContainerRegistry(url="fake_url", session=session)
+    adapter = registry_api.session.adapters["https://"]
+
+    assert adapter.max_retries.total == 0
+
+
 @pytest.mark.parametrize(
     ["url", "expected_url"],
     [

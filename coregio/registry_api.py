@@ -63,7 +63,12 @@ class ContainerRegistry:
         self._original_url = url
         self.docker_cfg = docker_cfg
 
-        self.session = session or requests.Session()
+        if session:
+            self.session = session
+        else:
+            self.session = requests.Session()
+            utils.add_session_retries(self.session)
+
         self.proxy = proxy
 
         self.auth_header = None
@@ -196,7 +201,6 @@ class ContainerRegistry:
                 auth_token, proxy=self.proxy
             )
         self.session.auth = self._auth_session_cache[auth_class]
-        utils.add_session_retries(self.session)
 
         return self.session
 
