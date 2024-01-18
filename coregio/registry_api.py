@@ -67,6 +67,7 @@ class ContainerRegistry:
         self.proxy = proxy
 
         self.auth_header = None
+        self._auth_session_cache = {}
 
     @staticmethod
     def _normalize_registry_url(url: str) -> str:
@@ -189,7 +190,12 @@ class ContainerRegistry:
         """
 
         auth_token = self._get_auth_token()
-        self.session.auth = auth_class(auth_token, proxy=self.proxy)
+        if auth_class not in self._auth_session_cache:
+            # Create a new auth session and cache it
+            self._auth_session_cache[auth_class] = auth_class(
+                auth_token, proxy=self.proxy
+            )
+        self.session.auth = self._auth_session_cache[auth_class]
         utils.add_session_retries(self.session)
 
         return self.session
