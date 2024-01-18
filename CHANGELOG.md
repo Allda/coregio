@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Allda/coregio/compare/v0.6.0...v0.7.0) (2024-01-18)
+
+
+### Features
+
+* Catch auth session between requests ([337723a](https://github.com/Allda/coregio/commit/337723a1eb8c5f380547439b5d6efb768cf49768))
+
 ## [0.6.0](https://github.com/Allda/coregio/compare/v0.5.2...v0.6.0) (2023-08-09)
 
 
