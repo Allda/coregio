@@ -2,7 +2,7 @@
 
 [project]
 name = "coregio"
-version = "0.6.0"
+version = "0.7.0"
 description = "Python container registry API library."
 authors = [{ name = "Ales Raszka", email = "araszka@redhat.com" }]
 dependencies = ["requests>=2.31.0"]
